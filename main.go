@@ -183,7 +183,7 @@ func createTeam(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	initDB()
-	// dbRun()
+	dbRun()
 	defer db.Close()
 
 	http.HandleFunc("/stats", createGameStat)

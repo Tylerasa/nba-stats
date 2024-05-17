@@ -1,0 +1,1 @@
+- Run `go main.go db.go average.go`
