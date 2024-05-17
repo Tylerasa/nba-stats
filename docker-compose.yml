@@ -1,0 +1,31 @@
+version: '3'
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file: .env
+    depends_on:
+      - db
+    networks:
+      - shared-network
+
+  db:
+    build:
+      context: .
+      dockerfile: db.Dockerfile
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: nba-db
+    restart: always
+    networks:
+      - shared-network
+
+networks:
+  shared-network:
+    driver: bridge
