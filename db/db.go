@@ -1,54 +1,37 @@
-package main
+package db
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"log"
 	"os"
 
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/joho/godotenv"
 )
 
-func dbRun() {
-	// psqlInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-	// 	dbHost, dbPort, dbUser, dbPassword, dbName)
+var DB *pgxpool.Pool
 
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
+func InitDB() {
 
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	err = db.Ping()
-	if err != nil {
-		log.Fatal(err)
+	dotErr := godotenv.Load()
+	if dotErr != nil {
+		fmt.Println("Error loading .env file")
 	}
 
-	fmt.Println("Successfully connected!")
-
-	createTables(db)
-
-	fmt.Println("Tables checked/created successfully!")
-}
-
-func createTables(db *sql.DB) {
-	createTeamTable := `
+	createTables := `
     CREATE TABLE IF NOT EXISTS Team (
         team_id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL
-    );`
+    );
 
-	createPlayerTable := `
     CREATE TABLE IF NOT EXISTS Player (
         player_id SERIAL PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         team_id INT,
         FOREIGN KEY (team_id) REFERENCES Team(team_id)
-    );`
+    );
 
-	createGameStatsTable := `
     CREATE TABLE IF NOT EXISTS GameStats (
         game_id SERIAL PRIMARY KEY,
         player_id INT NOT NULL,
@@ -63,18 +46,26 @@ func createTables(db *sql.DB) {
         FOREIGN KEY (player_id) REFERENCES Player(player_id)
     );`
 
-	_, err := db.Exec(createTeamTable)
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"))
+
+	var err error
+	DB, err = pgxpool.Connect(context.Background(), connStr)
+
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec(createPlayerTable)
+	err = DB.Ping(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	_, err = db.Exec(createGameStatsTable)
-	if err != nil {
-		log.Fatal(err)
+	_, execErr := DB.Exec(context.Background(), createTables)
+	if execErr != nil {
+		log.Fatal(execErr)
 	}
+
+	fmt.Println("Tables created successfully!")
+
+	fmt.Println("Successfully connected to the database!")
 }
